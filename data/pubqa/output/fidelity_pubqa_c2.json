@@ -1,0 +1,59 @@
+{
+  "config": {
+    "scores": "../data/pubqa/output/crag_pubqa_c2.txt.scores.npy",
+    "input_file": "../data/pubqa/test_pubqa.txt",
+    "ndocs": 10,
+    "upper_threshold": 0.592,
+    "lower_threshold": -0.995,
+    "matcher": "metrics.match (repo)"
+  },
+  "check_1_score_distribution": {
+    "n_scores": 9870,
+    "n_queries": 987,
+    "expected_n_scores": 9870,
+    "count_matches_expected": true,
+    "min": -1.0233,
+    "max": 1.0088,
+    "mean": -0.8397,
+    "std": 0.2881,
+    "percentiles": {
+      "1": -1.0083,
+      "5": -0.9972,
+      "25": -0.9653,
+      "50": -0.9196,
+      "75": -0.8333,
+      "95": -0.5311,
+      "99": 0.7637
+    },
+    "within_unit_interval": false,
+    "exact_minus_one_sentinels": 0,
+    "empty_passages_in_input": 0,
+    "degenerate": false
+  },
+  "check_2_action_distribution": {
+    "upper_threshold": 0.592,
+    "lower_threshold": -0.995,
+    "n_queries": 987,
+    "distribution": {
+      "Correct": {
+        "n": 109,
+        "pct": 11.04
+      },
+      "Ambiguous": {
+        "n": 878,
+        "pct": 88.96
+      },
+      "Incorrect": {
+        "n": 0,
+        "pct": 0.0
+      }
+    },
+    "passage_level_flags": {
+      "Correct": 200,
+      "Ambiguous": 9071,
+      "Incorrect": 599
+    },
+    "collapsed_into_one_action": true
+  },
+  "check_3_accuracy": {}
+}
