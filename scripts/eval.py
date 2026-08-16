@@ -69,7 +69,7 @@ def main():
     input_data = preprocess_input_data(
         input_data, task=args.task)
     eval_file = args.eval_file
-    with open(eval_file, 'r') as f:
+    with open(eval_file, 'r',encoding='utf-8') as f:
         resps = [l.strip()[:] for l in f.readlines()]    
     preds = []
     prompts = []
