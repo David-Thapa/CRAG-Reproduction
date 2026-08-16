@@ -1,166 +1,110 @@
-# CRAG Reproduction
+# Corrective RAG — Reproduction and Threshold Transfer Analysis
 
-A controlled reproduction of **CRAG — Corrective Retrieval Augmented Generation**
-(Yan et al., 2024), built on the open-source reproduction of Yalavarthi (2026)
-and run entirely on free components.
+A controlled, zero-cost reproduction of **CRAG** (Yan et al., 2024), with a quantitative
+analysis of what happens to its fixed confidence thresholds under domain transfer.
 
-MSc Artificial Intelligence dissertation, University of East London.
-**David Thapa** · supervised by Dr Azhar Mahmood
+**David Thapa** — MSc Artificial Intelligence, University of East London
+Supervised by Dr Azhar Mahmood
 
-This repository is the **baseline**. It exists to establish, with evidence, that
-the corrective retrieval mechanism has been reproduced faithfully before anything
-is compared against it. What it feeds into is described at the bottom.
+This repository is the verified baseline for a dissertation on uncertainty-calibrated
+corrective retrieval. Everything here is held fixed for that comparison.
 
 ---
 
-## What CRAG does
+## Overview
 
-CRAG places a fine-tuned T5-large **retrieval evaluator** between the retriever
-and the generator. It scores each retrieved passage against the query, aggregates
-those scores to the query level, and compares the result against an upper and a
-lower threshold to select one of three corrective actions:
+CRAG places a fine-tuned T5-large **retrieval evaluator** between the retriever and the
+generator. It scores each retrieved passage, takes the maximum across the query, and
+compares that against two fixed thresholds to select a corrective action.
 
 | Action | Evidence passed to the generator |
 |---|---|
-| **Correct** | The retrieved passages, refined (decompose → filter → recompose) |
-| **Incorrect** | The passages are discarded; web search results are used instead |
-| **Ambiguous** | Both, combined |
+| Correct | Retrieved passages, refined |
+| Incorrect | Passages discarded; web search used instead |
+| Ambiguous | Both, combined |
 
-Aggregation is the maximum: a query is routed to Correct if *any single* passage
-clears the upper threshold. The decisive passage is the highest-scoring one.
+This reproduction rebuilds that mechanism from released artefacts, substituting three
+components outside the mechanism with free alternatives.
 
-## What this reproduction does
-
-Reproduces that mechanism from released artefacts, with three components outside
-the mechanism replaced by free alternatives (declared below), and verifies
-fidelity using criteria that do not depend on those substitutions.
-
----
-
-## Results
-
-### PopQA long-tail
-
-| Configuration | Accuracy | n |
+| Component | Original | Here |
 |---|---|---|
-| Vanilla RAG | 0.6104 | 854 / 1,399 |
-| CRAG | **0.6355** | 889 / 1,399 |
-| **Corrective delta** | **+2.51 pp** | reference +3.0 pp |
+| Generator | LLaMA-2-7B (fine-tuned) | Phi-3-mini-4k-instruct |
+| Web search | Google Search API (paid) | Wikipedia (precomputed) |
+| Keyword extraction | GPT-3.5 Turbo | Rule-based |
+| Retrieval evaluator | T5-large (fine-tuned) | Same checkpoint |
 
-The corrective delta reproduces Yalavarthi (2026) within 0.5 pp.
+**Datasets.** This reproduction evaluates on **PopQA (long-tail)** and **PubHealth**.
+Yalavarthi (2026) reproduced CRAG on PopQA and **ARC-Challenge**; ARC-Challenge is not
+used here, and neither is Biography. PopQA is the in-domain set — the distribution the
+evaluator was fine-tuned on, and the only one of the four with passage-level reliability
+labels. PubHealth is the transfer set: its claims are not keyed to biographical entities,
+which makes it the site of the domain-shift analysis below. The PopQA results are
+therefore directly comparable with the published reproduction, while the PubHealth
+transfer analysis is new to this work.
 
-Absolute accuracy is higher than the 0.544 reported there. This is expected and
-is **not** used as a fidelity criterion: evaluation uses substring matching, which
-is sensitive to answer verbosity, which in turn depends on generator version,
-prompt formatting and decoding library — none of which affect the retrieval
-evaluation under test. The comparable quantity is the delta.
+## Key results
 
-### Fidelity checks
+**PopQA long-tail** — 1,399 instances
 
-Three generator-independent criteria, since the generator is a declared substitution.
-
-| Check | Result | Status |
+| Configuration | Accuracy | Reference |
 |---|---|---|
-| 1. Score distribution | 13,990 scores = 1,399 × 10; range [−1.06, +1.10]; mean −0.797; sd 0.593; not degenerate | pass |
-| 2. Action distribution | 53.9% Correct / 30.5% Ambiguous / 15.7% Incorrect; no collapse | pass |
-| 3. Corrective delta | +2.51 pp vs +3.0 pp published | pass |
+| Vanilla RAG | 0.6104 | 0.514 |
+| CRAG | 0.6355 | 0.544 |
+| **Corrective effect** | **+2.51 pp** | +3.0 pp |
 
-The raw scores are **not** strictly bounded by [−1, 1]. They are unbounded
-regression logits spanning approximately that range, consistent in scale with the
-published thresholds (0.592, −0.995).
+Comparable with Yalavarthi (2026), who reports the same PopQA long-tail split.
 
-### Transfer to PubHealth
+**Transfer to PubHealth** — 987 claims, no parameter refitted. Not examined in the
+reproduction this work follows, which used ARC-Challenge as its transfer set.
 
-The evaluator and thresholds are applied to PubHealth with **no refitting**.
-
-| | Correct | Ambiguous | Incorrect | score sd |
+| | Correct | Ambiguous | Incorrect | Score s.d. |
 |---|---|---|---|---|
-| PopQA (in-domain) | 53.9% | 30.5% | 15.7% | 0.593 |
-| PubHealth, PopQA thresholds | 11.0% | **89.0%** | **0.0%** | 0.288 |
-| PubHealth, PubHealth thresholds | 11.9% | 82.2% | 6.0% | 0.288 |
+| PopQA, in domain | 53.9% | 30.5% | 15.7% | 0.593 |
+| PubHealth, transferred thresholds | 11.0% | **89.0%** | **0.0%** | 0.288 |
+| PubHealth, tuned thresholds | 11.9% | 82.2% | 6.0% | 0.288 |
 
-1. **The collapse reproduces.** 89.0% of PubHealth queries route to a single
-   action, closely matching the 88.3% Yalavarthi (2026) reported on
-   ARC-Challenge. Two different transfer datasets, same evaluator, same collapse.
-2. **The mechanism is visible.** Score standard deviation halves under transfer
-   (0.593 → 0.288). The distribution compresses, so thresholds that partitioned a
-   wide distribution into three meaningful regions now sit outside a narrow one.
-   Under transferred thresholds the system never selects web search — the
-   corrective mechanism has effectively switched itself off.
-3. **Per-dataset tuning does not fix it.** Using PubHealth's own published
-   thresholds still routes 82.2% to a single action. If the score distribution has
-   lost its shape, no choice of two cut-points recovers it.
+## Findings
 
-**Stated caveats.** The transfer changes task as well as domain (short-answer QA →
-claim verification), so this measures robustness to transfer in general rather
-than domain shift with task held constant. Separately, `data_process.py` formats
-passages differently per dataset — PopQA uses `ctx["text"]` alone while PubHealth
-uses `ctx["title"] + ' // ' + ctx["text"]` — so the evaluator sees Wikipedia
-titles on one dataset and not the other. Both are inherited from the baseline and
-are reported rather than treated as controlled.
+1. **The corrective mechanism reproduces.** +2.51 pp against +3.0 pp published. Absolute
+   accuracy is higher because evaluation uses substring matching, which rewards verbose
+   answers; the effect size is the comparable quantity, and it is preserved.
 
----
+2. **The threshold collapse appears on a second, independent dataset.** Yalavarthi (2026)
+   observed 88.3% of ARC-Challenge queries collapsing into a single action. Measured here
+   on **PubHealth** — a different transfer domain, and one not examined in that work —
+   89.0% collapse the same way, under the same evaluator. Across all 987 claims, web
+   search is never selected once. Two unrelated transfer datasets producing the same
+   concentration turns a single observation into a pattern.
 
-## Provenance
+3. **The mechanism is visible in the scores.** Score dispersion halves under transfer
+   (s.d. 0.593 → 0.288). Thresholds that partitioned a wide distribution into three
+   populated regions no longer partition a narrow one.
 
-| Component | Source | Status |
+4. **Per-dataset tuning does not repair it.** PubHealth's own published thresholds still
+   route 82.2% to a single action. The problem is not the choice of cut-points but the
+   loss of the distributional shape they were chosen against.
+
+5. **Every decision rests on one passage.** The median passage scores −1.005, below the
+   lower threshold, yet 53.9% of PopQA queries route to Correct. Max aggregation means a
+   single passage above the upper threshold determines the action for the whole query.
+
+**Caveats.** The transfer changes task as well as domain (QA → claim verification).
+Separately, the released preprocessing prepends passage titles on PubHealth but not on
+PopQA, so part of the compression may be a formatting effect. Both are inherited from the
+baseline and reported rather than controlled.
+
+## Fidelity checks
+
+Generator-independent, since the generator is a declared substitution.
+
+| Check | Observed | Status |
 |---|---|---|
-| Retrieval evaluator (T5-large) | Released checkpoint, Yan et al. (2024) | Reused unmodified, inference only |
-| Retrieved passages | `eval_data`, Asai et al. (2024) | Reused unmodified; no retrieval performed here |
-| Knowledge refinement | Released procedure, Yan et al. (2024) | Reused unmodified |
-| `ref/{correct,incorrect,ambiguous}` | Precomputed, Yalavarthi (2026) | Reused unmodified |
-| Generator | Phi-3-mini-4k-instruct | Free substitution, following Yalavarthi (2026) |
-| Web search | Wikipedia API | Free substitution, following Yalavarthi (2026) |
-| Keyword extraction | Rule-based | Free substitution for the GPT-3.5 step |
-| `fidelity_check.py` | — | Written for this study |
+| Score distribution | 13,990 = 1,399 × 10; range [−1.06, +1.10]; s.d. 0.593 | pass |
+| Action distribution | 53.9 / 30.5 / 15.7; no collapse | pass |
+| Corrective effect | +2.51 pp vs +3.0 pp | pass |
 
-Upstream commit: `568612e80bd17665f76ffeeccb93c056f87880df` (17 Mar 2026),
-from [suryayalavarthi/crag-reproduction](https://github.com/suryayalavarthi/crag-reproduction).
-
-PopQA evaluation data was obtained from the HuggingFace mirror
-[`awinml/popqa_longtail_w_gs`](https://huggingface.co/datasets/awinml/popqa_longtail_w_gs),
-the official Google Drive release being unavailable. The mirror was verified by
-exact string match of all 1,399 questions, in order, against the `sources` file
-distributed with the reproduction.
-
-### Modifications to upstream code
-
-All changes are declared. **None alters the decision logic.**
-
-| File | Change | Reason |
-|---|---|---|
-| `CRAG_Inference.py` | Evaluator freed (`del model` + `empty_cache`) before the vLLM engine is constructed | vLLM reserves ~90% of VRAM by default; on a 16GB T4 the evaluator could not then be loaded |
-| `CRAG_Inference.py` | `gpu_memory_utilization=0.80` | Same 16GB constraint |
-| `CRAG_Inference.py` | Raw evaluator scores cached to `.scores.npy` | Avoids re-scoring for every configuration |
-| `data_process.py` | Unused dataset paths commented out | Only PopQA and PubHealth are in scope |
-| `requirements.txt` | Rewritten | The upstream file is a `pip freeze` pinning `torch`, `triton`, `xformers` and the CUDA runtime, which is unresolvable on current hosted GPU environments |
-
----
-
-## Data
-
-| Dataset | Items | Passages | Lines in `test_*.txt` |
-|---|---|---|---|
-| PopQA (long-tail) | 1,399 (1,385 distinct questions; 13 repeated) | 10 per item, top-10 of 25 available | 13,990 |
-| PubHealth (test) | 987 | 10 per item | 9,870 |
-
-Passage-level reliability labels exist only for PopQA, derived using the released
-procedure:
-
-```python
-label = 1 if ctx["title"] == item["s_wiki_title"] else 0
-```
-
-This records whether a passage comes from the intended entity's Wikipedia page,
-not whether it supports the answer — a provenance proxy rather than a direct
-reliability judgement. PubHealth supplies labels only for the final verdict.
-
-**1,321 of 13,990 PopQA passages (9.4%) are empty.** `inference()` assigns these a
-hardcoded `-1.0` rather than a model output. Since the PopQA median score is
-−1.005, this sentinel spike sits close to the centre of the distribution.
-PubHealth has no empty passages.
-
----
+Scores are unbounded regression logits, not confined to [−1, 1], though consistent in
+scale with the published thresholds (0.592, −0.995).
 
 ## Setup
 
@@ -170,13 +114,12 @@ cd CRAG-Reproduction
 pip install -r requirements.txt
 ```
 
-Do **not** install or pin `torch`, `triton`, `xformers` or any `nvidia-*` package
-on a hosted GPU environment — they ship with the image, matched to the driver.
-
 Download the T5 evaluator checkpoint from the
 [original CRAG repository](https://github.com/HuskyInSalt/CRAG) into
-`models/finetuned_t5_evaluator/`. The generator is pulled from HuggingFace
-automatically on first run.
+`models/finetuned_t5_evaluator/`. The generator is pulled from HuggingFace on first run.
+
+> Do not install or pin `torch`, `triton`, `xformers` or any `nvidia-*` package on a
+> hosted GPU environment — they ship with the image, matched to the driver.
 
 ## Running
 
@@ -186,79 +129,84 @@ bash run_eval.sh               # accuracy for both
 bash run_fidelity_check.sh     # the three fidelity checks
 ```
 
-`data_process.py` only needs to be re-run to regenerate `test_popqa.txt` **with**
-the `\t0/1` reliability labels, which the shipped file does not carry.
+Knowledge preparation is **not** re-run — the `ref/` files are reused as released.
+Regenerating them requires a paid API key and would query a different Wikipedia snapshot,
+breaking comparability with the reproduction being checked against.
 
-Knowledge preparation is **not** re-run. The `ref/` files are reused as released:
-`external_knowledge_preparation.py` calls `extract_keywords()` in `utils.py`,
-which requires a paid OpenAI key, and regenerating against a current Wikipedia
-snapshot would break comparability with the reproduction being checked against.
+Approximate cost on one 16GB T4: ~1 h evaluator scoring, ~2.5 h generation per
+configuration.
 
-Approximate cost on a single 16GB T4: ~1 hour of evaluator scoring for PopQA plus
-~2.5 hours of generation per configuration. Generation is issued one prompt at a
-time, which forgoes vLLM's continuous batching; batching the calls produces
-identical output under greedy decoding and is under consideration for subsequent
-runs.
+## Data
 
-## Repository layout
+| | PopQA (long-tail) | PubHealth (test) |
+|---|---|---|
+| Instances | 1,399 (1,385 distinct questions) | 987 |
+| Passages per instance | 10, of 25 available | 10 |
+| Pairs scored | 13,990 | 9,870 |
+| Empty passages | 1,321 (9.4%) | 0 |
+| Passage-level labels | yes | no |
+
+Reliability labels are derived using the released rule —
+`label = 1 if ctx["title"] == item["s_wiki_title"]` — which records provenance rather than
+answer support. Empty passages receive a hardcoded `-1.0` rather than a model score, and
+are excluded before any calibration is fitted.
+
+## Repository structure
 
 ```
-data/
-  popqa/    sources · test_popqa.txt · ref/{correct,incorrect,ambiguous} · output/
-  pubqa/    sources · test_pubqa.txt · retrieved_psgs · ref/{...} · output/
-models/     T5 evaluator checkpoint (not tracked)
-retrieval_lm/eval_data/   evaluation JSONL with gold answers
-scripts/    pipeline and analysis code
-run_*.sh    pipeline stages
+├── data/
+│   ├── popqa/          sources · test_popqa.txt · ref/{correct,incorrect,ambiguous} · output/
+│   └── pubqa/          sources · test_pubqa.txt · retrieved_psgs · ref/ · output/
+├── models/             T5 evaluator checkpoint (not tracked)
+├── retrieval_lm/       evaluation JSONL with gold answers
+├── scripts/
+│   ├── CRAG_Inference.py       pipeline: score → route → generate
+│   ├── fidelity_check.py       the three fidelity criteria
+│   ├── data_process.py         builds test_*.txt from the evaluation JSONL
+│   └── eval.py, metrics.py     accuracy
+└── run_*.sh            pipeline stages
 ```
 
----
+## Provenance
 
-## Status
+| Component | Source | Status |
+|---|---|---|
+| Retrieval evaluator | Yan et al. (2024) | Reused unmodified, inference only |
+| Retrieved passages | Asai et al. (2024) | Reused unmodified; no retrieval performed here |
+| Knowledge refinement | Yan et al. (2024) | Reused unmodified |
+| `ref/` evidence files | Yalavarthi (2026) | Reused unmodified |
+| Generator, web search, keyword extraction | — | Free substitutions, following Yalavarthi (2026) |
+| `fidelity_check.py` | — | Written for this study |
 
-- [x] CRAG baseline reproduced on PopQA; three fidelity checks pass
-- [x] Vanilla RAG baseline
-- [x] Evaluator scores cached for PopQA and PubHealth
-- [x] Transfer action distributions under both threshold settings
-- [ ] PubHealth gold labels — the released `health_claims_processed.jsonl` is
-      unavailable; to be reconstructed from the original PUBHEALTH release by
-      claim-text matching
-- [ ] Prompt truncation for PubHealth generation (some prompts exceed the
-      4,096-token context of Phi-3-mini-4k-instruct)
-- [ ] Closed-book diagnostic, to bound the headroom available to any retrieval
-      evaluation strategy
+Upstream commit `568612e` (17 Mar 2026), from
+[suryayalavarthi/crag-reproduction](https://github.com/suryayalavarthi/crag-reproduction).
 
----
+PopQA evaluation data was taken from the mirror
+[`awinml/popqa_longtail_w_gs`](https://huggingface.co/datasets/awinml/popqa_longtail_w_gs),
+the official release being inaccessible. Verified by exact ordered string match of all
+1,399 questions against the released `sources` file.
 
-## What this feeds into
+### Modifications
 
-This reproduction is the baseline for **UC-CRAG (Uncertainty-Calibrated Corrective
-Retrieval-Augmented Generation)**, developed in a separate repository.
+None alters the decision logic.
 
-The results above motivate it. CRAG's evaluator returns a raw score, not a
-probability, and nothing in the framework establishes what that score means. The
-thresholds are set per dataset, which requires labelled data from the target
-domain — exactly what is missing when a system meets an unfamiliar one. The
-transfer results here show the consequence: the score distribution compresses,
-fixed thresholds stop partitioning it, and 89% of queries collapse into a single
-action while the system registers no problem. Retuning the thresholds recovers
-little.
+| File | Change | Reason |
+|---|---|---|
+| `CRAG_Inference.py` | Evaluator released from memory before the vLLM engine is built | vLLM reserves ~90% of VRAM; the evaluator could not otherwise load on a 16GB T4 |
+| `CRAG_Inference.py` | `gpu_memory_utilization=0.80` | Same constraint |
+| `CRAG_Inference.py` | Raw scores cached to `.scores.npy` | Avoids re-scoring per configuration |
+| `data_process.py` | Unused dataset paths disabled | Only PopQA and PubHealth in scope |
+| `requirements.txt` | Rewritten | Upstream pins `torch`, the CUDA runtime and a `transformers` version predating the generator it uses |
 
-UC-CRAG replaces the threshold comparison with a calibrated probability *p* and an
-uncertainty estimate *σ*, selecting the corrective action from the pair. The
-evaluator, the retriever, the generator and the three corrective actions are all
-left unchanged — the intervention is confined to the step that turns an
-evaluator score into a decision. Setting the uncertainty tolerance to infinity and
-the calibration mapping to the identity recovers CRAG's rule exactly, so the
-baseline reproduced here is a strict special case of it.
+## Next
 
-Everything in this repository is held fixed for that comparison: the same cached
-evaluator scores, the same retrieved passages, the same knowledge files, the same
-generator. Only the decision rule changes.
+These results motivate **UC-CRAG**, developed separately: the threshold comparison is
+replaced by a calibrated probability and an uncertainty estimate, with the evaluator,
+retriever, generator and corrective actions unchanged. Setting the uncertainty tolerance
+to infinity and the calibration mapping to the identity recovers CRAG exactly, so the
+baseline reproduced here is a strict special case.
 
----
-
-## References
+## Citation
 
 ```bibtex
 @inproceedings{yan2024corrective,
@@ -277,28 +225,16 @@ generator. Only the decision rule changes.
 }
 
 @inproceedings{asai2024selfrag,
-  title     = {Self-RAG: Learning to Retrieve, Generate and Critique through
-               Self-Reflection},
+  title     = {Self-RAG: Learning to Retrieve, Generate and Critique through Self-Reflection},
   author    = {Asai, Akari and Wu, Zeqiu and Wang, Yizhong and Sil, Avirup and
                Hajishirzi, Hannaneh},
   booktitle = {International Conference on Learning Representations},
   year      = {2024}
 }
-
-@inproceedings{mallen2023popqa,
-  title     = {When Not to Trust Language Models: Investigating Effectiveness of
-               Parametric and Non-Parametric Memories},
-  author    = {Mallen, Alex and Asai, Akari and Zhong, Victor and Das, Rajarshi
-               and Khashabi, Daniel and Hajishirzi, Hannaneh},
-  booktitle = {ACL},
-  year      = {2023}
-}
 ```
 
 ## Acknowledgements
 
-This work builds directly on CRAG by Yan et al., the Self-RAG evaluation data
-released by Asai et al., and the open-source reproduction and explainability
-analysis by Yalavarthi. The T5 retrieval evaluator checkpoint is the original
-authors'. Reuse is central to this methodology rather than incidental to it, and
-is cited accordingly.
+Builds on CRAG by Yan et al., the Self-RAG evaluation data released by Asai et al., and
+the open-source reproduction and explainability analysis by Yalavarthi. The T5 retrieval
+evaluator checkpoint is the original authors'.
