@@ -1,0 +1,79 @@
+{
+  "config": {
+    "scores": "../data/popqa/output/crag_popqa.txt.scores.npy",
+    "input_file": "../data/popqa/test_popqa.txt",
+    "ndocs": 10,
+    "upper_threshold": 0.592,
+    "lower_threshold": -0.995,
+    "matcher": "metrics.match (repo)"
+  },
+  "check_1_score_distribution": {
+    "n_scores": 13990,
+    "n_queries": 1399,
+    "expected_n_scores": 13990,
+    "count_matches_expected": true,
+    "min": -1.0634,
+    "max": 1.0953,
+    "mean": -0.7972,
+    "std": 0.5931,
+    "percentiles": {
+      "1": -1.048,
+      "5": -1.0402,
+      "25": -1.0205,
+      "50": -1.005,
+      "75": -0.9965,
+      "95": 0.9841,
+      "99": 1.038
+    },
+    "within_unit_interval": false,
+    "exact_minus_one_sentinels": 1321,
+    "empty_passages_in_input": 1321,
+    "degenerate": false
+  },
+  "check_2_action_distribution": {
+    "upper_threshold": 0.592,
+    "lower_threshold": -0.995,
+    "n_queries": 1399,
+    "distribution": {
+      "Correct": {
+        "n": 754,
+        "pct": 53.9
+      },
+      "Ambiguous": {
+        "n": 426,
+        "pct": 30.45
+      },
+      "Incorrect": {
+        "n": 219,
+        "pct": 15.65
+      }
+    },
+    "passage_level_flags": {
+      "Correct": 1393,
+      "Ambiguous": 1953,
+      "Incorrect": 10644
+    },
+    "collapsed_into_one_action": false
+  },
+  "check_3_accuracy": {
+    "n_gold": 1399,
+    "crag": {
+      "file": "../data/popqa/output/crag_popqa.txt",
+      "n_scored": 1399,
+      "n_predictions": 1399,
+      "correct": 889,
+      "accuracy": 0.6355,
+      "empty_predictions": 0
+    },
+    "rag": {
+      "file": "../data/popqa/output/rag_popqa.txt",
+      "n_scored": 1399,
+      "n_predictions": 1399,
+      "correct": 854,
+      "accuracy": 0.6104,
+      "empty_predictions": 0
+    },
+    "delta_pp": 2.51,
+    "reference_delta_pp": 3.0
+  }
+}
