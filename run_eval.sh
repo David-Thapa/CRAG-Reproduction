@@ -1,5 +1,6 @@
 cd scripts
+
 python eval.py \
-  --input_file ../eval_data/health_claims_processed.jsonl \
-  --eval_file ../data/pubqa/output/YOUR_OUTPUT_FILE \
-  --metric match --task fever
+  --input_file ../retrieval_lm/eval_data/popqa_longtail_w_gs.jsonl \
+  --eval_file ../data/popqa/output/crag_popqa.txt \
+  --metric match --task popqa
