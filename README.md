@@ -215,15 +215,27 @@ baseline reproduced here is a strict special case.
   booktitle = {International Conference on Learning Representations},
   year      = {2024}
 }
-
-@article{yalavarthi2026crag,
-  title   = {Open-Source Reproduction and Explainability Analysis of
-             Corrective Retrieval Augmented Generation},
-  author  = {Yalavarthi, Surya Vardhan},
-  journal = {arXiv preprint arXiv:2603.16169},
-  year    = {2026}
+ 
+@misc{yalavarthi2026crag,
+  title         = {Open-Source Reproduction and Explainability Analysis of
+                   Corrective Retrieval Augmented Generation},
+  author        = {Yalavarthi, Surya Vardhan},
+  year          = {2026},
+  eprint        = {2603.16169},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL}
 }
-
+ 
+@inproceedings{mallen2023popqa,
+  title     = {When Not to Trust Language Models: Investigating Effectiveness of
+               Parametric and Non-Parametric Memories},
+  author    = {Mallen, Alex and Asai, Akari and Zhong, Victor and Das, Rajarshi and
+               Khashabi, Daniel and Hajishirzi, Hannaneh},
+  booktitle = {Proceedings of the 61st Annual Meeting of the Association for
+               Computational Linguistics},
+  year      = {2023}
+}
+ 
 @inproceedings{asai2024selfrag,
   title     = {Self-RAG: Learning to Retrieve, Generate and Critique through Self-Reflection},
   author    = {Asai, Akari and Wu, Zeqiu and Wang, Yizhong and Sil, Avirup and
