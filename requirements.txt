@@ -1,0 +1,45 @@
+# NOTE: do NOT pin torch on Kaggle/Colab. It ships with the image, matched to the
+# CUDA driver. Installing another build breaks GPU access.
+#
+# Install:  pip install -r requirements.txt
+
+# ---------------------------------------------------------------------------
+# Core — required to run CRAG_Inference.py and eval.py
+# ---------------------------------------------------------------------------
+transformers>=4.41.2        # 4.41.2 is the floor: Phi-3-mini support
+vllm                        # generator backend in CRAG_Inference.py
+sentencepiece               # T5 tokenizer
+protobuf==5.29.5            # T5 tokenizer; 5.29.5 avoids Kaggle dependency conflicts
+accelerate
+
+numpy
+pandas
+scikit-learn                # sklearn.utils.shuffle in CRAG_Inference.py
+tqdm
+jsonlines                   # eval.py, utils.py
+
+openai                      # NOT used by this study, but utils.py imports it at
+                            # module level, so eval.py fails without it
+
+# ---------------------------------------------------------------------------
+# Data acquisition
+# ---------------------------------------------------------------------------
+datasets                    # download_data.py, build_ground_truth.py
+huggingface_hub
+safetensors
+
+# ---------------------------------------------------------------------------
+# Needed for the UC-CRAG contribution (calibration + statistics)
+# ---------------------------------------------------------------------------
+scipy                       # bootstrap resampling
+statsmodels                 # McNemar's test
+matplotlib                  # reliability diagrams, error-analysis plots
+
+# ---------------------------------------------------------------------------
+# Only needed if regenerating the knowledge files (ref/correct, ref/incorrect).
+# This study reuses the released ones, so these are optional.
+# ---------------------------------------------------------------------------
+# beautifulsoup4            # external/internal_knowledge_preparation.py
+# requests                  # external_knowledge_preparation.py
+# wikipedia                 # wikipedia_ambiguous_v2.py
+# wikipedia-api             # wikipedia_ambiguous_v2.py
