@@ -220,7 +220,8 @@ def main():
     args = parser.parse_args()
     args.lower_threshold = -args.lower_threshold
 
-    generator = LLM(model=args.generator_path, dtype="half")
+    # generator = LLM(model=args.generator_path, dtype="half")
+    
     sampling_params = SamplingParams(temperature=0.0, top_p=1.0, max_tokens=100, skip_special_tokens=False)
     
     tokenizer = T5Tokenizer.from_pretrained(args.evaluator_path)
@@ -240,6 +241,7 @@ def main():
             device=device, 
             n_docs=args.ndocs
         )
+        np.save(args.output_file + ".scores.npy", np.array(scores))
         identification_flag = process_flag(scores, args.ndocs, args.upper_threshold, args.lower_threshold)
 
         with open(args.internal_knowledge_path, 'r') as in_f, open(args.external_knowledge_path, 'r') as ex_f, open(args.combined_knowledge_path, 'r') as comb_f:
@@ -257,6 +259,14 @@ def main():
             elif flag == 2:
                 paragraphs.append(i) # correct
             n += 1
+
+    del model
+    import gc
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    generator = LLM(model=args.generator_path, dtype="half",
+                    gpu_memory_utilization=0.85)
     
     preds = []
     modelname = "selfrag_llama" if "selfrag" in args.generator_path else "llama"
