@@ -1,0 +1,5 @@
+__pycache__/
+
+data/popqa/output/crag_popqa.txt
+data/popqa/output/rag_popqa.txt
+data/popqa/output/crag_popqa.txt.scores.npy
